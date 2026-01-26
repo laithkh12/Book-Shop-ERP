@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Book Shop ERP - Professional Management System</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-image">
+            <img src="assets/shopping-header.jpeg" alt="Book Shop Header">
+            <div class="header-overlay">
+                <div class="header-content">
+                    <h1 class="logo">Book Shop ERP</h1>
+                    <p class="tagline">Professional Bookstore Management System</p>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="container">
+            <!-- Dashboard Stats -->
+            <section class="stats-section">
+                <h2 class="section-title">Dashboard Overview</h2>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">📚</div>
+                        <div class="stat-info">
+                            <h3 class="stat-value" id="totalBooks">0</h3>
+                            <p class="stat-label">Total Books</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">💰</div>
+                        <div class="stat-info">
+                            <h3 class="stat-value" id="totalRevenue">$0</h3>
+                            <p class="stat-label">Total Revenue</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">🛒</div>
+                        <div class="stat-info">
+                            <h3 class="stat-value" id="totalOrders">0</h3>
+                            <p class="stat-label">Total Orders</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">⭐</div>
+                        <div class="stat-info">
+                            <h3 class="stat-value" id="avgRating">0.0</h3>
+                            <p class="stat-label">Average Rating</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <div class="inventory-layout">
+                <!-- Left Side: Table -->
+                <section class="inventory-section">
+                    <div class="section-header">
+                        <h2 class="section-title">Book Inventory</h2>
+                        <button class="btn btn-primary" onclick="showAddBookForm()">Add New Book</button>
+                    </div>
+                    
+                    <div class="table-container">
+                        <table class="inventory-table" id="inventoryTable">
+                            <thead>
+                                <tr>
+                                    <th>Image</th>
+                                    <th>Title</th>
+                                    <th>Author</th>
+                                    <th>Price</th>
+                                    <th>Pages</th>
+                                    <th>Rating</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="inventoryTableBody">
+                                <!-- Data will be injected here by controller.js -->
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- Right Side: View/Edit Panel -->
+                <aside class="side-panel" id="sidePanel">
+                    <div class="panel-header">
+                        <h3 id="panelTitle">Book Details</h3>
+                        <button class="btn-close" onclick="closePanel()">×</button>
+                    </div>
+                    <div class="panel-content" id="panelContent">
+                        <!-- Content will be injected here -->
+                    </div>
+                </aside>
+            </div>
+        </div>
+    </main>
+
+    <!-- Overlay for mobile -->
+    <div class="panel-overlay" id="panelOverlay" onclick="closePanel()"></div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2026 Book Shop ERP. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="js/model.js"></script>
+    <script src="js/controller.js"></script>
+</body>
+</html>
