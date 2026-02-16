@@ -9,14 +9,15 @@ function getImageSrc(imagePath) {
 }
 
 // Wait for DOM to be fully loaded
-document.addEventListener('DOMContentLoaded', function() {
-    // Check if Gdata exists
-    if (typeof Gdata === 'undefined') {
-        console.error('Gdata is not defined. Make sure model.js is loaded before controller.js');
+document.addEventListener('DOMContentLoaded', async function() {
+    // Check if bookService exists
+    if (typeof bookService === 'undefined') {
+        console.error('bookService is not defined. Make sure model.js is loaded before controller.js');
         return;
     }
 
-    // Update stats and load table on page load
+    // Load books from server and then update UI
+    await bookService.getAllBooks();
     updateStats();
     loadTable();
 });
@@ -62,7 +63,7 @@ function updateStats() {
 }
 
 // Function to load and refresh table
-function loadTable() {
+async function loadTable() {
     const tableBody = document.getElementById('inventoryTableBody');
     
     if (!tableBody) {
@@ -70,9 +71,12 @@ function loadTable() {
         return;
     }
     
+    // Reload books from server
+    await bookService.getAllBooks();
+    
     // Check if Gdata exists
-    if (typeof Gdata === 'undefined') {
-        console.error('Gdata is not defined');
+    if (typeof Gdata === 'undefined' || !Array.isArray(Gdata)) {
+        console.error('Gdata is not defined or not an array');
         return;
     }
 
@@ -99,7 +103,7 @@ function loadTable() {
         titleCell.textContent = book.title;
         titleCell.className = 'book-title-cell';
         titleCell.style.cursor = 'pointer';
-        titleCell.onclick = () => viewBook(index);
+        titleCell.onclick = () => viewBook(book.id !== undefined ? book.id : index);
         titleCell.title = 'Click to view book details';
         
         // Create author cell
@@ -127,21 +131,21 @@ function loadTable() {
         const viewBtn = document.createElement('button');
         viewBtn.textContent = 'View';
         viewBtn.className = 'btn btn-view';
-        viewBtn.onclick = () => viewBook(index);
+        viewBtn.onclick = () => viewBook(book.id || index);
         actionsCell.appendChild(viewBtn);
         
         // Edit button
         const editBtn = document.createElement('button');
         editBtn.textContent = 'Edit';
         editBtn.className = 'btn btn-edit';
-        editBtn.onclick = () => editBook(index);
+        editBtn.onclick = () => editBook(book.id || index);
         actionsCell.appendChild(editBtn);
         
         // Delete button
         const deleteBtn = document.createElement('button');
         deleteBtn.textContent = 'Delete';
         deleteBtn.className = 'btn btn-delete';
-        deleteBtn.onclick = () => deleteBook(index);
+        deleteBtn.onclick = () => deleteBook(book.id || index);
         actionsCell.appendChild(deleteBtn);
         
         // Append all cells to row
@@ -159,13 +163,22 @@ function loadTable() {
 }
 
 // Function to view book details
-function viewBook(index) {
-    if (typeof Gdata === 'undefined' || !Gdata[index]) {
+function viewBook(idOrIndex) {
+    // Find book by ID or index using filter
+    let book;
+    if (typeof idOrIndex === 'number' && idOrIndex < Gdata.length && (!Gdata[idOrIndex] || !Gdata[idOrIndex].id)) {
+        // Use as index if it's a number and the book at that index doesn't have an ID
+        book = Gdata[idOrIndex];
+    } else {
+        // Use filter to find by ID
+        const foundBooks = Gdata.filter(b => b.id === idOrIndex);
+        book = foundBooks.length > 0 ? foundBooks[0] : null;
+    }
+    
+    if (!book) {
         console.error('Book not found');
         return;
     }
-    
-    const book = Gdata[index];
     const panel = document.getElementById('sidePanel');
     const panelTitle = document.getElementById('panelTitle');
     const panelContent = document.getElementById('panelContent');
@@ -194,7 +207,7 @@ function viewBook(index) {
                     </div>
                 </div>
                 <div class="book-actions">
-                    <button class="btn btn-primary" onclick="editBook(${index})">Edit Book</button>
+                    <button class="btn btn-primary" onclick="editBook(${book.id !== undefined ? book.id : Gdata.indexOf(book)})">Edit Book</button>
                     <button class="btn btn-secondary" onclick="closePanel()">Close</button>
                 </div>
             </div>
@@ -205,13 +218,24 @@ function viewBook(index) {
 }
 
 // Function to edit book
-function editBook(index) {
-    if (typeof Gdata === 'undefined' || !Gdata[index]) {
+function editBook(idOrIndex) {
+    // Find book by ID or index using filter
+    let book;
+    if (typeof idOrIndex === 'number' && idOrIndex < Gdata.length && (!Gdata[idOrIndex] || !Gdata[idOrIndex].id)) {
+        // Use as index if it's a number and the book at that index doesn't have an ID
+        book = Gdata[idOrIndex];
+    } else {
+        // Use filter to find by ID
+        const foundBooks = Gdata.filter(b => b.id === idOrIndex);
+        book = foundBooks.length > 0 ? foundBooks[0] : null;
+    }
+    
+    if (!book) {
         console.error('Book not found');
         return;
     }
     
-    const book = Gdata[index];
+    const bookId = book.id || idOrIndex;
     const panel = document.getElementById('sidePanel');
     const panelTitle = document.getElementById('panelTitle');
     const panelContent = document.getElementById('panelContent');
@@ -261,14 +285,14 @@ function editBook(index) {
     const form = document.getElementById('editBookForm');
     form.addEventListener('submit', function(e) {
         e.preventDefault();
-        saveEditedBook(index);
+        saveEditedBook(bookId);
     });
     
     openPanel();
 }
 
 // Function to save edited book
-function saveEditedBook(index) {
+async function saveEditedBook(idOrIndex) {
     const updatedBook = {
         title: document.getElementById('editTitle').value.trim(),
         author: document.getElementById('editAuthor').value.trim(),
@@ -290,44 +314,53 @@ function saveEditedBook(index) {
         return;
     }
     
-    // Update book in Gdata array
-    Gdata[index] = updatedBook;
-    
-        // Save to localStorage
-        if (typeof saveToLocalStorage === 'function') {
-            saveToLocalStorage();
-        } else {
-            localStorage.setItem('bookShopData', JSON.stringify(Gdata));
-        }
+    try {
+        // Update book on server using bookService
+        await bookService.updateBook(idOrIndex, updatedBook);
         
         // Reload table, update stats, and close panel
-        loadTable();
+        await loadTable();
         updateStats();
         closePanel();
         alert('Book updated successfully!');
+    } catch (error) {
+        console.error('Error updating book:', error);
+        alert('Error updating book. Please try again.');
+    }
 }
 
 // Function to delete book
-function deleteBook(index) {
-    if (typeof Gdata === 'undefined' || !Gdata[index]) {
+async function deleteBook(idOrIndex) {
+    // Find book by ID or index using filter
+    let book;
+    if (typeof idOrIndex === 'number' && idOrIndex < Gdata.length && (!Gdata[idOrIndex] || !Gdata[idOrIndex].id)) {
+        // Use as index if it's a number and the book at that index doesn't have an ID
+        book = Gdata[idOrIndex];
+    } else {
+        // Use filter to find by ID
+        const foundBooks = Gdata.filter(b => b.id === idOrIndex);
+        book = foundBooks.length > 0 ? foundBooks[0] : null;
+    }
+    
+    if (!book) {
         console.error('Book not found');
         return;
     }
     
-    const book = Gdata[index];
     if (confirm(`Are you sure you want to delete "${book.title}"?`)) {
-        // Remove book from Gdata array
-        Gdata.splice(index, 1);
-        // Save to localStorage
-        if (typeof saveToLocalStorage === 'function') {
-            saveToLocalStorage();
-        } else {
-            localStorage.setItem('bookShopData', JSON.stringify(Gdata));
+        try {
+            const bookId = book.id || idOrIndex;
+            // Delete book from server using bookService (uses filter internally)
+            await bookService.deleteBook(bookId);
+            
+            // Reload table, update stats, and close panel if open
+            await loadTable();
+            updateStats();
+            closePanel();
+        } catch (error) {
+            console.error('Error deleting book:', error);
+            alert('Error deleting book. Please try again.');
         }
-        // Reload table, update stats, and close panel if open
-        loadTable();
-        updateStats();
-        closePanel();
     }
 }
 
@@ -389,7 +422,7 @@ function showAddBookForm() {
 }
 
 // Function to save new book
-function saveNewBook() {
+async function saveNewBook() {
     const newBook = {
         title: document.getElementById('addTitle').value.trim(),
         author: document.getElementById('addAuthor').value.trim(),
@@ -411,21 +444,19 @@ function saveNewBook() {
         return;
     }
     
-    // Add book to Gdata array
-    Gdata.push(newBook);
-    
-        // Save to localStorage
-        if (typeof saveToLocalStorage === 'function') {
-            saveToLocalStorage();
-        } else {
-            localStorage.setItem('bookShopData', JSON.stringify(Gdata));
-        }
+    try {
+        // Create book on server using bookService (adds to array using spread operator)
+        await bookService.createBook(newBook);
         
         // Reload table, update stats, and close panel
-        loadTable();
+        await loadTable();
         updateStats();
         closePanel();
         alert('Book added successfully!');
+    } catch (error) {
+        console.error('Error creating book:', error);
+        alert('Error creating book. Please try again.');
+    }
 }
 
 // Function to close side panel

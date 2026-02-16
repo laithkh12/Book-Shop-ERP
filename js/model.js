@@ -1,77 +1,127 @@
-// Default book data
-const defaultGdata = [{
-        title: "Hobbit",
-        author: "J.R.R. Tolkien",
-        price: 10.99,
-        pages: 300,
-        image: "Hobbit.webp",
-        rating: 4.7,
-    },
-    {
-        title: "The Lord of the Rings",
-        author: "J.R.R. Tolkien",
-        price: 15.99,
-        pages: 500,
-        image: "The_Lord_of _the_Rings.jpg",
-        rating: 4.9,
-    },
-    {
-        title: "The Hitchhiker's Guide to the Galaxy",
-        author: "Douglas Adams",
-        price: 12.99,
-        pages: 200,
-        image: "The_Hitchhikers_Guide_to_the_Galaxy.jpg",
-        rating: 4.2,
-    },
-    {
-        title: "The Great Gatsby",
-        author: "F. Scott Fitzgerald",
-        price: 14.99,
-        pages: 250,
-        image: "The_Great_Gatsby.webp",
-        rating: 4.5,
-    },
-    {
-        title: "To Kill a Mockingbird",
-        author: "Harper Lee",
-        price: 13.99,
-        pages: 220,
-        image: "To_Kill_a_Mockingbird.jpg",
-        rating: 4.8,
-    },
-    {
-        title: "1984",
-        author: "George Orwell",
-        price: 11.99,
-        pages: 280,
-        image: "1984.jpg",
-        rating: 4.6,
-    },
-    {
-        title: "The Catcher in the Rye",
-        author: "J.D. Salinger",
-        price: 10.99,
-        image: "The_Catcher_in_the_Rye.jpg",
-        rating: 3.9,
-    }
-];
+// Book Service - Makes API calls to server
+// Base URL for the API server
+const API_BASE_URL = 'http://localhost:3000/api/books';
 
-// Function to save data to localStorage
-function saveToLocalStorage() {
-    localStorage.setItem('bookShopData', JSON.stringify(Gdata));
-}
+// Default books loaded from data/defaultBooks.js (loaded via script tag in HTML)
+// Use window.defaultBooks directly (already defined in defaultBooks.js)
+// If not available, use empty array as fallback
+const getDefaultBooks = () => {
+    return (typeof window !== 'undefined' && window.defaultBooks) ? window.defaultBooks : [];
+};
 
-// Load data from localStorage or use default data
-let Gdata;
-if (localStorage.getItem('bookShopData')) {
-    try {
-        Gdata = JSON.parse(localStorage.getItem('bookShopData'));
-    } catch (e) {
-        console.error('Error parsing data from localStorage:', e);
-        Gdata = defaultGdata;
-        saveToLocalStorage();
+// Data stored in array variable
+let Gdata = [];
+
+// Book Service Object with CRUD operations using map/filter
+const bookService = {
+    // READ - Get all books from server
+    async getAllBooks() {
+        try {
+            const response = await fetch(API_BASE_URL);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const books = await response.json();
+            Gdata = books;
+            return Gdata;
+        } catch (error) {
+            console.error('Error fetching books from server:', error);
+            console.log('Using default books as fallback');
+            // Fallback to default books if server is not available
+            Gdata = [...getDefaultBooks()];
+            return Gdata;
+        }
+    },
+
+    // READ - Get single book by ID
+    async getBookById(id) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/${id}`);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const book = await response.json();
+            // Update local array using map
+            Gdata = Gdata.map(b => b.id === id ? book : b);
+            return book;
+        } catch (error) {
+            console.error('Error fetching book:', error);
+            // Fallback: try to find in local array using filter
+            const foundBooks = Gdata.filter(b => b.id === id);
+            return foundBooks.length > 0 ? foundBooks[0] : null;
+        }
+    },
+
+    // CREATE - Add new book to server
+    async createBook(bookData) {
+        try {
+            const response = await fetch(API_BASE_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(bookData)
+            });
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const newBook = await response.json();
+            // Add to local array
+            Gdata = [...Gdata, newBook];
+            return newBook;
+        } catch (error) {
+            console.error('Error creating book:', error);
+            throw error;
+        }
+    },
+
+    // UPDATE - Update existing book on server
+    async updateBook(id, bookData) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/${id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(bookData)
+            });
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const updatedBook = await response.json();
+            // Update local array using map
+            Gdata = Gdata.map(book =>
+                book.id === id
+                    ? { ...book, ...updatedBook }
+                    : book
+            );
+            return updatedBook;
+        } catch (error) {
+            console.error('Error updating book:', error);
+            throw error;
+        }
+    },
+
+    // DELETE - Delete book from server
+    async deleteBook(id) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/${id}`, {
+                method: 'DELETE'
+            });
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            // Remove from local array using filter
+            Gdata = Gdata.filter(book => book.id !== id);
+            return true;
+        } catch (error) {
+            console.error('Error deleting book:', error);
+            throw error;
+        }
     }
-} else {
-    Gdata = defaultGdata;
-    saveToLocalStorage();
-}
+};
+
+// Initialize: Load books from server on page load
+bookService.getAllBooks().then(() => {
+    console.log('Books loaded from server:', Gdata);
+});

@@ -26,16 +26,24 @@ A modern, single-page web application for managing bookstore inventory with real
   - Hidden scrollbars for a cleaner look
 
 - **💾 Data Persistence**
-  - All data stored in browser localStorage
-  - Changes persist across page reloads
-  - Automatic data saving
+  - All data stored in MongoDB database
+  - Changes persist across page reloads and sessions
+  - Automatic data synchronization with server
 
 ## 🛠️ Technologies Used
 
+### Frontend
 - **HTML5** - Structure
 - **CSS3** - Styling with modern features (Flexbox, Grid, Gradients)
 - **JavaScript (Vanilla)** - No frameworks, pure JavaScript
-- **localStorage API** - Data persistence
+- **Fetch API** - HTTP requests to backend
+
+### Backend
+- **Node.js** - Runtime environment
+- **Express.js** - Web server framework
+- **MongoDB** - NoSQL database
+- **Mongoose** - MongoDB object modeling
+- **CORS** - Cross-origin resource sharing
 
 ## 📁 Project Structure
 
@@ -43,11 +51,20 @@ A modern, single-page web application for managing bookstore inventory with real
 book-shop-erp/
 │
 ├── index.html          # Single-page application
+├── server.js           # Express server with MongoDB connection
+├── package.json        # Node.js dependencies
+├── .env                # Environment variables (MongoDB connection)
 ├── css/
 │   └── style.css       # All styles (inventory, stats, panels)
 ├── js/
-│   ├── model.js        # Data model (Gdata array)
+│   ├── model.js        # Book service with API calls
 │   └── controller.js   # Business logic (CRUD operations, stats)
+├── data/
+│   └── defaultBooks.js # Default books data
+├── models/
+│   └── Book.js         # MongoDB Book model
+├── scripts/
+│   └── importBooks.js  # Script to import books from JSON
 ├── assets/             # Book cover images
 │   ├── 1984.jpg
 │   ├── Hobbit.webp
@@ -64,37 +81,49 @@ book-shop-erp/
 
 ### Prerequisites
 
+- **Node.js** (v14 or higher) - [Download](https://nodejs.org/)
+- **MongoDB Atlas account** - [Sign up](https://www.mongodb.com/cloud/atlas) (free tier available)
 - A modern web browser (Chrome, Firefox, Safari, Edge)
-- A local web server (optional, for best experience)
 
 ### Installation
 
-1. Clone the repository:
+1. **Clone the repository:**
 ```bash
 git clone <repository-url>
 cd book-shop-erp
 ```
 
-2. Open `index.html` in your web browser
+2. **Install dependencies:**
+```bash
+npm install
+```
 
-   **Option 1: Direct File**
-   - Simply double-click `index.html` to open it in your default browser
-
-   **Option 2: Local Server (Recommended)**
-   ```bash
-   # Using Python 3
-   python -m http.server 8000
-   
-   # Using Python 2
-   python -m SimpleHTTPServer 8000
-   
-   # Using Node.js (http-server)
-   npx http-server
-   
-   # Using PHP
-   php -S localhost:8000
+3. **Set up environment variables:**
+   - Create a `.env` file in the root directory
+   - Add your MongoDB connection string:
    ```
-   Then open `http://localhost:8000` in your browser
+   MONGODB_URI=mongodb+srv://<username>:<password>@cluster0.xxxxx.mongodb.net/bookshop?retryWrites=true&w=majority
+   PORT=3000
+   ```
+   - Replace `<username>` and `<password>` with your MongoDB Atlas credentials
+   - Make sure your IP address is whitelisted in MongoDB Atlas (Network Access)
+
+4. **Start the server:**
+```bash
+npm start
+```
+
+5. **Open the application:**
+   - Open your browser and navigate to `http://localhost:3000`
+   - The server will automatically initialize the database with default books if it's empty
+
+### Development Mode
+
+For development with auto-reload:
+```bash
+npm run dev
+```
+(Requires `nodemon` - install with `npm install -g nodemon` or it's included in devDependencies)
 
 ## 📖 Usage
 
@@ -143,15 +172,23 @@ All dashboard widgets update automatically:
 - **Average Rating**: Average of all book ratings
 
 ### Data Persistence
-- All data is stored in browser localStorage
-- No backend required
-- Data persists across browser sessions
-- To reset data, clear browser localStorage
+- All data is stored in MongoDB database
+- Backend API handles all CRUD operations
+- Data persists across browser sessions and devices
+- Automatic database initialization with default books
+- Uses `map` and `filter` for array operations (UPDATE/DELETE)
 
 ## 🎨 Customization
 
 ### Adding Default Books
-Edit `js/model.js` to add or modify default books in the `defaultGdata` array.
+Edit `data/defaultBooks.js` to add or modify default books. The server will automatically insert them into MongoDB on first run if the database is empty.
+
+### Importing Books from JSON
+You can import books from a JSON file using the import script:
+```bash
+npm run import
+```
+Make sure your `data/books.json` file is properly formatted.
 
 ### Styling
 All styles are in `css/style.css`. Key sections:
@@ -184,12 +221,31 @@ This project is open source and available for educational purposes.
 
 Created as part of Full Stack Course - Lesson 10
 
+## 🔌 API Endpoints
+
+The server provides the following REST API endpoints:
+
+- `GET /api/books` - Get all books
+- `GET /api/books/:id` - Get a single book by ID
+- `POST /api/books` - Create a new book
+- `PUT /api/books/:id` - Update a book by ID (uses `map` for array operations)
+- `DELETE /api/books/:id` - Delete a book by ID (uses `filter` for array operations)
+
+## 🗄️ Database
+
+- **Database**: MongoDB Atlas (cloud)
+- **Collection**: `books`
+- **Model**: Defined in `models/Book.js`
+- **Initialization**: Default books are automatically inserted on first server start
+
 ## 🙏 Acknowledgments
 
 - Modern CSS techniques for responsive design
-- localStorage API for client-side data persistence
-- Vanilla JavaScript for framework-free development
+- Express.js for backend API
+- MongoDB for data persistence
+- Vanilla JavaScript for framework-free frontend development
+- Map/Filter functions for efficient array operations
 
 ---
 
-**Note**: This is a front-end only application. All data is stored locally in the browser's localStorage. For production use, consider implementing a backend database.
+**Note**: This application requires a running server and MongoDB connection. Make sure the server is running before accessing the frontend.
